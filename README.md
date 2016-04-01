@@ -26,4 +26,5 @@ As long as the ESP of the adapter is not configured for connecting to a WiFi net
     * **Subnet Mask**
   * The **Port** at which the adapter listens for an incoming connection (mandatory)
 * Press "Submit" afterwards. The adapter will save the configuration, restart and connect to the given WiFi network. Afterwards the server will be reachable in the network at the IP (DHCP or static) and specified port. The server's IP is also pingable.
-* To re-configure the adapter, connect _GPIO12_ to _GND_ for a short time (e.g. by a pushbutton). Thus, the existing configuration will be deleted and the adapter will enter setup mode again (see above).
+
+To re-configure the adapter, connect _GPIO12_ to _GND_ for a short time (e.g. by a pushbutton). Thus, the existing configuration will be deleted and the adapter will enter setup mode again (see above).
