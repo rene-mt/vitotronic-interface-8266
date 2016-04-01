@@ -3,6 +3,9 @@
 #include <FS.h>
 #include <ESP8266WebServer.h>
 
+//GPIO pin triggering setup interrupt for re-configuring the server
+#define SETUP_INTERRUPT_PIN 12
+
 //setup mode flag, 1 when in setup mode, 0 otherwise
 uint8_t _setupMode = 0;
 
@@ -71,7 +74,8 @@ void setup() {
   //Serial1.setDebugOutput(true);
   Serial1.println("Vitotronic WiFi Interface"); Serial1.println();
 
-  pinMode(12, INPUT_PULLUP); // Set GPIO12 as an input w/ pull-up
+  pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP); // Set GPIO12 as an input w/ pull-up
+  attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, CHANGE);
 
   SPIFFS.begin();
   File configFile = SPIFFS.open(_configFile, "r");
@@ -81,17 +85,16 @@ void setup() {
     String ssid = configFile.readStringUntil('\n');
     String password = configFile.readStringUntil('\n');
     
-    String sPort = configFile.readStringUntil('\n');
+    String port = configFile.readStringUntil('\n');
     
     if (!ssid || ssid.length() == 0 
       || !password || password.length() == 0
-      || !sPort || sPort.length() == 0)
+      || !port || port.length() == 0)
     {
       //reset & return to setup mode if minium configuration data is missing
       Serial1.println("Minimum configuration data is missing (ssid, password, port) - resetting to setup mode.");
       SPIFFS.remove(_configFile);
       ESP.reset();
-      yield();
       return;        
     }
 
@@ -125,12 +128,12 @@ void setup() {
     }
     Serial1.print("Ready! Server available at ");
     Serial1.print(WiFi.localIP());
-    Serial1.print(":"); Serial1.println(sPort);
+    Serial1.print(":"); Serial1.println(port);
 
     Serial.begin(4800, SERIAL_8E2); // Vitotronic connection runs at 4800,E,2
     Serial1.println("Serial port to Vitotronic opened at 4800bps, 8E2");
     
-    server = new WiFiServer(sPort.toInt());
+    server = new WiFiServer(port.toInt());
     server->begin();
   }
   else {
@@ -263,21 +266,17 @@ void handleUpdate(){
 
   configFile.close();
   
-  //leave setup mode
+  //leave setup mode and restart with existing configuration
   ESP.reset();
-  yield();
+}
+
+void setupInterrupt(){
+  //if the setup button has been pushed delete the existing configuration and reset the ESP to enter setup mode again
+  SPIFFS.remove(_configFile);
+  ESP.reset();
 }
 
 void loop() {
-  //if setup button has 
-  if (digitalRead(12) == LOW) {
-    //delete WiFi config file and reset the system to enter setup mode
-    SPIFFS.remove(_configFile);
-    ESP.reset();
-    yield();
-    return;
-  }
-  
   if (!_setupMode)
     wifiSerialLoop();
   else if (_setupServer)
