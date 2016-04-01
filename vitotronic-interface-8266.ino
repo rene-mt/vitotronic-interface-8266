@@ -6,6 +6,10 @@
 //GPIO pin triggering setup interrupt for re-configuring the server
 #define SETUP_INTERRUPT_PIN 12
 
+//SSID and password for the configuration WiFi network established bei the ESP in setup mode
+#define SETUP_AP_SSID "vitotronic-interface"
+#define SETUP_AP_PASSWORD "vitotronic"
+
 //setup mode flag, 1 when in setup mode, 0 otherwise
 uint8_t _setupMode = 0;
 
@@ -74,9 +78,11 @@ void setup() {
   //Serial1.setDebugOutput(true);
   Serial1.println("Vitotronic WiFi Interface"); Serial1.println();
 
-  pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP); // Set GPIO12 as an input w/ pull-up
-  attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, CHANGE);
+  //configure GPIO for setup interrupt by push button
+  pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, LOW);
 
+  //try to read config file from internal file system
   SPIFFS.begin();
   File configFile = SPIFFS.open(_configFile, "r");
   if (configFile){
@@ -88,11 +94,10 @@ void setup() {
     String port = configFile.readStringUntil('\n');
     
     if (!ssid || ssid.length() == 0 
-      || !password || password.length() == 0
       || !port || port.length() == 0)
     {
       //reset & return to setup mode if minium configuration data is missing
-      Serial1.println("Minimum configuration data is missing (ssid, password, port) - resetting to setup mode.");
+      Serial1.println("Minimum configuration data is missing (ssid, port) - resetting to setup mode.");
       SPIFFS.remove(_configFile);
       ESP.reset();
       return;        
@@ -120,12 +125,12 @@ void setup() {
   
     Serial1.print("\nConnecting to "); Serial1.println(ssid);
     uint8_t i = 0;
-  
     while (WiFi.status() != WL_CONNECTED && i++ < 20) delay(500);
     if (i == 21) {
       Serial1.print("Could not connect to"); Serial1.println(ssid);
       while (1) delay(500);
     }
+    
     Serial1.print("Ready! Server available at ");
     Serial1.print(WiFi.localIP());
     Serial1.print(":"); Serial1.println(port);
@@ -140,15 +145,17 @@ void setup() {
     //start ESP in access point mode and provide a HTTP server at port 80 to handle the configuration page.
     Serial1.println("No WiFi config exists, switching to setup mode.");
     WiFi.mode(WIFI_AP);
-    WiFi.begin("", "");
+    WiFi.softAP(SETUP_AP_SSID, SETUP_AP_PASSWORD);
+    
     _setupServer = new ESP8266WebServer(80);
     _setupServer->on("/", handleRoot);
     _setupServer->on("/update", HTTP_POST, handleUpdate);
     _setupServer->onNotFound(handleRoot);
     _setupServer->begin();
-    
+
+    Serial1.println("WiFi access point with SSID \"" SETUP_AP_SSID "\" opened.");
     Serial1.print("Configuration web server started at ");
-    Serial1.print(WiFi.localIP());
+    Serial1.print(WiFi.softAPIP());
     Serial1.println(":80");
     
     _setupMode = 1;  
@@ -272,6 +279,7 @@ void handleUpdate(){
 
 void setupInterrupt(){
   //if the setup button has been pushed delete the existing configuration and reset the ESP to enter setup mode again
+  SPIFFS.begin();
   SPIFFS.remove(_configFile);
   ESP.reset();
 }
