@@ -1,6 +1,7 @@
 // Import required libraries
 #include <ESP8266WiFi.h>
 #include <FS.h>
+#include <ESP8266WebServer.h>
 
 //setup mode flag, 1 when in setup mode, 0 otherwise
 uint8_t _setupMode = 0;
@@ -17,7 +18,42 @@ uint8_t _setupMode = 0;
  */
 //path+filename of the WiFi configuration file in the ESP's internal file system.
 const char* _configFile = "/config/config.txt";
- 
+
+const char* _htmlTemplate =
+  "<html>" \
+    "<head>" \
+      "<title>Vitotronic WiFi Interface</title>" \
+    "</head>" \
+    "<body>" \
+      "<h1>Vitotronic WiFi Interface</h1>" \
+      "<form action=\"update\" id=\"update\">" \
+        "<h2>WiFi Network Configuration Data</h2>" \
+        "<p>" \
+          "<div>The following information is mandatory to set up the WiFi connection of the server.</div>" \
+          "<label for=\"ssid\">SSID:</label><input type=\"text\" id=\"ssid\" required  />" \
+          "<label for=\"password\">Password:</label><input type=\"password\" id=\"password\" required />" \
+        "</p>" \
+        "<h2>Static IP settings</h2>" \
+        "<p>" \
+          "<div>If you want to assing a static IP address fill out the following information. All addresses have to by given in IPv4 format (XXX.XXX.XXX.XXX)." \
+                "Leave the fields empty to rely on DHCP to obtain an IP address.</div>" \
+          "<label for=\"ip\">Static IP:</label><input type=\"text\" id=\"ip\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" />" \
+          "<label for=\"dns\">DNS Server:</label><input type=\"text\" id=\"dns\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" />" \
+          "<label for=\"gateway\">Gateway:</label><input type=\"text\" id=\"gateway\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" />" \
+          "<label for=\"subnet\">Subnet mask:</label><input type=\"text\" id=\"subnet\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" />" \
+        "</p>" \        
+        "<h2>Server Port</h2>" \
+        "<p>" \
+          "<div>The Vitotronic WiFi Interface will listen at the following port for incoming telnet connections (mandatory):</div>" \
+          "<label for=\"port\">Port:</label><input type=\"number\" id=\"port\" value=\"8888\" required />" \
+        "</p>" \
+        "<button type=\"reset\">Reset</button>" \
+        "<button type=\"submit\">Submit</button>" \
+      "</form>" \
+    "</body>" \
+  "</html>";
+
+ESP8266WebServer* _setupServer = NULL;   
 WiFiServer* server = NULL;
 WiFiClient serverClient;
 
@@ -89,9 +125,11 @@ void setup() {
     server->begin();
   }
   else {
+    //start ESP in access point mode and provide a HTTP server at port 80 to handle the configuration page.
     Serial1.println("No WiFi config exists, switching to setup mode.");
     WiFi.mode(WIFI_AP);
     WiFi.begin("", "");
+    _setupServer = new ESP8266WebServer(80);
     _setupMode = 1;  
   }
 }
@@ -160,6 +198,12 @@ void wifiSerialLoop() {
     }
     Serial1.println();
   } 
+}
+
+void handleRoot(){
+  if (_setupServer){
+    _setupServer->send(200, "text/html", _htmlTemplate);
+  }
 }
 
 void setupLoop(){
