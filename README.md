@@ -1,5 +1,7 @@
 # vitotronic-interface-8266
 
+**Currently I am working on a way to allow dynamic configuration of the ESP server in the [develop](https://github.com/rene-mt/vitotronic-interface-8266/tree/develop) branch.**
+
 Simple ESP8266 WiFi to serial interface, built to connect to a Viessmann Vitotronic heating control. The heating control is accessed by using an _Optokoppler_, according to the instructions in the [OpenV wiki](http://openv.wikispaces.com/Bauanleitung+RaspberryPi) and made available as TCP/telnet server in the WiFi network. The communication bewteen the ESP8266 and the heating (via the _Optokoppler_) runs at 4800bps, 8 bits, even parity, 2 stop bits.
 
 The source is based on the [ESP8266 Arduino WiFi Telnet example](https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WiFi/examples/WiFiTelnetToSerial).
