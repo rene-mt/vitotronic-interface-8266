@@ -2,7 +2,6 @@
 #include <ESP8266WiFi.h>
 #include <FS.h>
 #include <ESP8266WebServer.h>
-#include <Regexp.h>
 
 //setup mode flag, 1 when in setup mode, 0 otherwise
 uint8_t _setupMode = 0;
