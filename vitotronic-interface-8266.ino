@@ -78,12 +78,11 @@ WiFiClient serverClient;
 
 void setup() {
   Serial1.begin(115200); // User Serial1 (GPIO2) as debug output (TX), with 115200,N,1
-  Serial1.setDebugOutput(true);
+  //Serial1.setDebugOutput(true);
   Serial1.println(); Serial1.println("Vitotronic WiFi Interface"); Serial1.println();
   yield();
 
   //configure GPIO for setup interrupt by push button
-  
   pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, FALLING);
 
