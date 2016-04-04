@@ -3,6 +3,7 @@
 #include <FS.h>
 #include <ESP8266WebServer.h>
 
+
 //GPIO pin triggering setup interrupt for re-configuring the server
 #define SETUP_INTERRUPT_PIN 12
 
@@ -14,15 +15,15 @@
 uint8_t _setupMode = 0;
 
 /*
- * Config file layout - one entry per line, seven lines overall, terminated by '\n':
- *  <ssid>
- *  <password>
- *  <port>
- *  <static IP - or empty line>
- *  <dnsServer IP - or empty line>
- *  <gateway IP - or empty line>
- *  <subnet mask - or empty line>
- */
+   Config file layout - one entry per line, seven lines overall, terminated by '\n':
+    <ssid>
+    <password>
+    <port>
+    <static IP - or empty line>
+    <dnsServer IP - or empty line>
+    <gateway IP - or empty line>
+    <subnet mask - or empty line>
+*/
 //path+filename of the WiFi configuration file in the ESP's internal file system.
 const char* _configFile = "/config/config.txt";
 
@@ -36,72 +37,75 @@ const char* _configFile = "/config/config.txt";
 
 const char* _htmlTemplate =
   "<html>" \
-    "<head>" \
-      "<title>Vitotronic WiFi Interface</title>" \
-    "</head>" \
-    "<body>" \
-      "<h1>Vitotronic WiFi Interface</h1>" \
-      "<form action=\"update\" id=\"update\" method=\"post\">" \
-        "<p>Fields marked by (*) are mandatory.</p>" \
-        "<h2>WiFi Network Configuration Data</h2>" \
-        "<p>" \
-          "<div>The following information is required to set up the WiFi connection of the server.</div>" \
-          "<label for=\"" FIELD_SSID "\">SSID (*):</label><input type=\"text\" id=\"" FIELD_SSID "\" required  />" \
-          "<label for=\"" FIELD_PASSWORD "\">Password:</label><input type=\"password\" id=\"" FIELD_PASSWORD "\" />" \
-        "</p>" \
-        "<h2>Static IP settings</h2>" \
-        "<p>" \
-          "<div>If you want to assing a static IP address fill out the following information. All addresses have to by given in IPv4 format (XXX.XXX.XXX.XXX)." \
-                "Leave the fields empty to rely on DHCP to obtain an IP address.</div>" \
-          "<label for=\"" FIELD_IP "\">Static IP:</label><input type=\"text\" id=\"" FIELD_IP "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" />" \
-          "<label for=\"" FIELD_DNS "\">DNS Server:</label><input type=\"text\" id=\"" FIELD_DNS "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" />" \
-          "<label for=\"" FIELD_GATEWAY "\">Gateway:</label><input type=\"text\" id=\"" FIELD_GATEWAY "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" />" \
-          "<label for=\"" FIELD_SUBNET "\">Subnet mask:</label><input type=\"text\" id=\"" FIELD_SUBNET "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" />" \
-        "</p>" \        
-        "<h2>Server Port</h2>" \
-        "<p>" \
-          "<div>The Vitotronic WiFi Interface will listen at the following port for incoming telnet connections:</div>" \
-          "<label for=\"" FIELD_PORT "\">Port (*):</label><input type=\"number\" id=\"" FIELD_PORT "\" value=\"8888\" required />" \
-        "</p>" \
-        "<button type=\"reset\">Reset</button>" \
-        "<button type=\"submit\">Submit</button>" \
-      "</form>" \
-    "</body>" \
+  "<head>" \
+  "<title>Vitotronic WiFi Interface</title>" \
+  "</head>" \
+  "<body>" \
+  "<h1>Vitotronic WiFi Interface</h1>" \
+  "<form action=\"update\" id=\"update\" method=\"post\">" \
+  "<p>Fields marked by (*) are mandatory.</p>" \
+  "<h2>WiFi Network Configuration Data</h2>" \
+  "<p>" \
+  "<div>The following information is required to set up the WiFi connection of the server.</div>" \
+  "<label for=\"" FIELD_SSID "\">SSID (*):</label><input type=\"text\" name=\"" FIELD_SSID "\" required  />" \
+  "<label for=\"" FIELD_PASSWORD "\">Password:</label><input type=\"password\" name=\"" FIELD_PASSWORD "\" />" \
+  "</p>" \
+  "<h2>Static IP settings</h2>" \
+  "<p>" \
+  "<div>If you want to assing a static IP address fill out the following information. All addresses have to by given in IPv4 format (XXX.XXX.XXX.XXX)." \
+  "Leave the fields empty to rely on DHCP to obtain an IP address.</div>" \
+  "<label for=\"" FIELD_IP "\">Static IP:</label><input type=\"text\" name=\"" FIELD_IP "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
+  "<label for=\"" FIELD_DNS "\">DNS Server:</label><input type=\"text\" name=\"" FIELD_DNS "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
+  "<label for=\"" FIELD_GATEWAY "\">Gateway:</label><input type=\"text\" name=\"" FIELD_GATEWAY "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
+  "<label for=\"" FIELD_SUBNET "\">Subnet mask:</label><input type=\"text\" name=\"" FIELD_SUBNET "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
+  "</p>" \
+  "<h2>Server Port</h2>" \
+  "<p>" \
+  "<div>The Vitotronic WiFi Interface will listen at the following port for incoming telnet connections:</div>" \
+  "<label for=\"" FIELD_PORT "\">Port (*):</label><input type=\"number\" name=\"" FIELD_PORT "\" value=\"8888\" required />" \
+  "</p>" \
+  "<div>" \
+  "<button type=\"reset\">Reset</button>&nbsp;" \
+  "<button type=\"submit\">Submit</button>" \
+  "</div>" \
+  "</form>" \
+  "</body>" \
   "</html>";
 
-ESP8266WebServer* _setupServer = NULL;   
+ESP8266WebServer* _setupServer = NULL;
 WiFiServer* server = NULL;
 WiFiClient serverClient;
 
 void setup() {
   Serial1.begin(115200); // User Serial1 (GPIO2) as debug output (TX), with 115200,N,1
   Serial1.setDebugOutput(true);
-  Serial1.println();Serial1.println("Vitotronic WiFi Interface"); Serial1.println();
+  Serial1.println(); Serial1.println("Vitotronic WiFi Interface"); Serial1.println();
   yield();
-  
+
   //configure GPIO for setup interrupt by push button
-  //pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP);
-  //attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, LOW);
+  
+  pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, FALLING);
 
   //try to read config file from internal file system
   SPIFFS.begin();
   File configFile = SPIFFS.open(_configFile, "r");
-  if (configFile){
+  if (configFile) {
     Serial1.println("Using existing WiFi config to connect");
 
     String ssid = configFile.readStringUntil('\n');
     String password = configFile.readStringUntil('\n');
-    
+
     String port = configFile.readStringUntil('\n');
-    
-    if (!ssid || ssid.length() == 0 
-      || !port || port.length() == 0)
+
+    if (!ssid || ssid.length() == 0
+        || !port || port.length() == 0)
     {
       //reset & return to setup mode if minium configuration data is missing
       Serial1.println("Minimum configuration data is missing (ssid, port) - resetting to setup mode.");
       SPIFFS.remove(_configFile);
       ESP.reset();
-      return;        
+      return;
     }
 
     String ip = configFile.readStringUntil('\n');
@@ -114,31 +118,34 @@ void setup() {
     // Initialize WiFi
     WiFi.mode(WIFI_STA);
     if (ip && ip.length() > 0
-      && dns && dns.length() > 0
-      && gateway && gateway.length() > 0
-      && subnet && subnet.length() > 0)
+        && dns && dns.length() > 0
+        && gateway && gateway.length() > 0
+        && subnet && subnet.length() > 0)
     {
-       //set static IP configuration, if available
+      //set static IP configuration, if available
       Serial1.println("Static IP configuration available.");
-      WiFi.config(IPAddress().fromString(ip), IPAddress().fromString(dns), IPAddress().fromString(gateway), IPAddress().fromString(subnet)); 
+      WiFi.config(IPAddress().fromString(ip), IPAddress().fromString(dns), IPAddress().fromString(gateway), IPAddress().fromString(subnet));
     }
     WiFi.begin(ssid.c_str(), password.c_str());
-  
+
     Serial1.print("\nConnecting to "); Serial1.println(ssid);
     uint8_t i = 0;
-    while (WiFi.status() != WL_CONNECTED && i++ < 20) delay(500);
+    while (WiFi.status() != WL_CONNECTED && i++ < 20) delay(1000);
     if (i == 21) {
       Serial1.print("Could not connect to"); Serial1.println(ssid);
-      while (1) delay(500);
+      Serial.println("Deleting configuration and resetting ESP to return to configuration mode...");
+      SPIFFS.remove(_configFile);
+      yield();
+      ESP.reset();
     }
-    
+
     Serial1.print("Ready! Server available at ");
     Serial1.print(WiFi.localIP());
     Serial1.print(":"); Serial1.println(port);
 
     Serial.begin(4800, SERIAL_8E2); // Vitotronic connection runs at 4800,E,2
     Serial1.println("Serial port to Vitotronic opened at 4800bps, 8E2");
-    
+
     server = new WiFiServer(port.toInt());
     server->begin();
   }
@@ -147,10 +154,10 @@ void setup() {
     Serial1.println("No WiFi config exists, switching to setup mode.");
     WiFi.mode(WIFI_AP);
     WiFi.softAP(SETUP_AP_SSID, SETUP_AP_PASSWORD);
-    
+
     _setupServer = new ESP8266WebServer(80);
     _setupServer->on("/", handleRoot);
-    _setupServer->on("/update", HTTP_POST, handleUpdate);
+    _setupServer->on("/update", handleUpdate);
     _setupServer->onNotFound(handleRoot);
     _setupServer->begin();
 
@@ -158,13 +165,13 @@ void setup() {
     Serial1.print("Configuration web server started at ");
     Serial1.print(WiFi.softAPIP());
     Serial1.println(":80");
-    
-    _setupMode = 1;  
+
+    _setupMode = 1;
   }
 }
 
 void wifiSerialLoop() {
-   uint8_t i;
+  uint8_t i;
   //check if there is a new client trying to connect
   if (server && server->hasClient()) {
     //check, if no client is already connected
@@ -191,7 +198,7 @@ void wifiSerialLoop() {
 
       // Write received WiFi data to serial
       Serial.write(sbuf, len);
-      
+
       yield();
 
       // Debug output received WiFi data to Serial1
@@ -201,19 +208,19 @@ void wifiSerialLoop() {
         Serial1.print(sbuf[n], HEX);
       }
       Serial1.println();
-     }
+    }
   }
 
   yield();
-  
+
   //check UART for data
-  if(Serial.available()){
+  if (Serial.available()) {
     size_t len = Serial.available();
     uint8_t sbuf[len];
     Serial.readBytes(sbuf, len);
-    
+
     //push UART data to connected WiFi client
-    if (serverClient && serverClient.connected()){
+    if (serverClient && serverClient.connected()) {
       serverClient.write(sbuf, len);
     }
 
@@ -226,34 +233,33 @@ void wifiSerialLoop() {
       Serial1.print(sbuf[n], HEX);
     }
     Serial1.println();
-  } 
+  }
 }
 
-void handleRoot(){
-  if (_setupServer){
+void handleRoot() {
+  if (_setupServer) {
     _setupServer->send(200, "text/html", _htmlTemplate);
   }
 }
 
-void handleUpdate(){
+void handleUpdate() {
   Serial1.println("handleUpdate()");
-  if (!_setupServer){
+  if (!_setupServer) {
     Serial1.println("_setupServer is NULL, exiting.");
     return;
   }
-  if (_setupServer->uri() != "/update"){
+  if (_setupServer->uri() != "/update") {
     Serial1.printf("URI is '%s', which does not match expected URI '/update', exiting.\n", _setupServer->uri().c_str());
     return;
   }
 
-  Serial1.printf("Number of submitted headers: %d\n", _setupServer->headers());
-  String ssid = _setupServer->header(FIELD_SSID);
-  String password = _setupServer->header(FIELD_PASSWORD);
-  String port = _setupServer->header(FIELD_PORT);
-  String ip = _setupServer->header(FIELD_IP);
-  String dns = _setupServer->header(FIELD_DNS);
-  String gateway = _setupServer->header(FIELD_GATEWAY);
-  String subnet = _setupServer->header(FIELD_SUBNET);
+  String ssid = _setupServer->arg(FIELD_SSID);
+  String password = _setupServer->arg(FIELD_PASSWORD);
+  String port = _setupServer->arg(FIELD_PORT);
+  String ip = _setupServer->arg(FIELD_IP);
+  String dns = _setupServer->arg(FIELD_DNS);
+  String gateway = _setupServer->arg(FIELD_GATEWAY);
+  String subnet = _setupServer->arg(FIELD_SUBNET);
 
   Serial1.println("Submitted parameters:");
   Serial1.println("SSID: " + ssid);
@@ -266,17 +272,17 @@ void handleUpdate(){
   Serial1.println("DNS: " + dns);
   Serial1.println("Gateway: " + gateway);
   Serial1.println("Subnet: " + subnet);
-  
+
   // check if mandatory parameters have been set
-  if (ssid.length() == 0 || port.length() == 0){
+  if (ssid.length() == 0 || port.length() == 0) {
     Serial1.println("Missing SSID or Port parameter!");
     handleRoot();
     return;
   }
 
   //for static IP configuration: check if all parameters have been set
-  if(ip.length() > 0 || dns.length() > 0 || gateway.length() > 0 || subnet.length() > 0 &&
-     (ip.length() == 0|| dns.length() == 0 || gateway.length() == 0 || subnet.length() == 0)){
+  if (ip.length() > 0 || dns.length() > 0 || gateway.length() > 0 || subnet.length() > 0 &&
+      (ip.length() == 0 || dns.length() == 0 || gateway.length() == 0 || subnet.length() == 0)) {
     Serial1.println("Missing static IP parameters!");
     handleRoot();
     return;
@@ -298,13 +304,15 @@ void handleUpdate(){
   configFile.close();
 
   //leave setup mode and restart with existing configuration
+  _setupServer->send(200, "text/plain", "Configuration saved. Rebooting adapter to connect to WiFi-Network '" + ssid + "'. If this does not work the adapter will return to setup mode again.");
   Serial1.println("Config saved, resetting ESP...");
   delay(10);
   ESP.reset();
 }
 
-void setupInterrupt(){
+void setupInterrupt() {
   //if the setup button has been pushed delete the existing configuration and reset the ESP to enter setup mode again
+  Serial1.println("Reset button pressed, deleting existing configuration...");
   SPIFFS.begin();
   SPIFFS.remove(_configFile);
   ESP.reset();
