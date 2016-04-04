@@ -79,12 +79,8 @@ WiFiClient serverClient;
 void setup() {
   Serial1.begin(115200); // User Serial1 (GPIO2) as debug output (TX), with 115200,N,1
   //Serial1.setDebugOutput(true);
-  Serial1.println(); Serial1.println("Vitotronic WiFi Interface"); Serial1.println();
+  Serial1.println("\nVitotronic WiFi Interface\n");
   yield();
-
-  //configure GPIO for setup interrupt by push button
-  pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, FALLING);
 
   //try to read config file from internal file system
   SPIFFS.begin();
@@ -108,9 +104,13 @@ void setup() {
     }
 
     String ip = configFile.readStringUntil('\n');
+    ip.trim();
     String dns = configFile.readStringUntil('\n');
+    dns.trim();
     String gateway = configFile.readStringUntil('\n');
+    gateway.trim();
     String subnet = configFile.readStringUntil('\n');
+    subnet.trim();
 
     configFile.close();
 
@@ -122,25 +122,33 @@ void setup() {
         && subnet && subnet.length() > 0)
     {
       //set static IP configuration, if available
-      Serial1.println("Static IP configuration available.");
+      Serial1.println("Static IP configuration available:");
+      Serial1.printf("IP: '%s', DNS: '%s', gateway: '%s', subnet mask: '%s'\n", ip.c_str(), dns.c_str(), gateway.c_str(), subnet.c_str());
       WiFi.config(IPAddress().fromString(ip), IPAddress().fromString(dns), IPAddress().fromString(gateway), IPAddress().fromString(subnet));
     }
-    WiFi.begin(ssid.c_str(), password.c_str());
 
-    Serial1.print("\nConnecting to "); Serial1.println(ssid);
-    uint8_t i = 0;
-    while (WiFi.status() != WL_CONNECTED && i++ < 20) delay(1000);
-    if (i == 21) {
-      Serial1.print("Could not connect to"); Serial1.println(ssid);
-      Serial.println("Deleting configuration and resetting ESP to return to configuration mode...");
+    //Serial1.printf("\nConnecting to WiFi network '%s' password: '%s'", ssid.c_str(), password.c_str());
+    Serial1.printf("\nConnecting to WiFi network '%s' password: '", ssid.c_str());
+    for (int i=0; i< password.length(); i++){
+      Serial1.print("*");
+    }
+    Serial1.print("'");
+    
+    uint8_t wifiAttempts = 0;
+    WiFi.begin(ssid.c_str(), password.c_str());
+    while (WiFi.status() != WL_CONNECTED && wifiAttempts++ < 20) {
+      Serial1.print('.');
+      delay(1000);
+    }
+    if (wifiAttempts == 21) {
+      Serial1.printf("\n\nCould not connect to WiFi network '%s'.\n", ssid.c_str());
+      Serial1.println("Deleting configuration and resetting ESP to return to configuration mode...");
       SPIFFS.remove(_configFile);
       yield();
       ESP.reset();
     }
 
-    Serial1.print("Ready! Server available at ");
-    Serial1.print(WiFi.localIP());
-    Serial1.print(":"); Serial1.println(port);
+    Serial1.printf("\n\nReady! Server available at %s:%s\n", WiFi.localIP().toString().c_str(), port.c_str());
 
     Serial.begin(4800, SERIAL_8E2); // Vitotronic connection runs at 4800,E,2
     Serial1.println("Serial port to Vitotronic opened at 4800bps, 8E2");
@@ -161,12 +169,15 @@ void setup() {
     _setupServer->begin();
 
     Serial1.println("WiFi access point with SSID \"" SETUP_AP_SSID "\" opened.");
-    Serial1.print("Configuration web server started at ");
-    Serial1.print(WiFi.softAPIP());
-    Serial1.println(":80");
+    Serial1.printf("Configuration web server started at %s:80\n\n", WiFi.softAPIP().toString().c_str());
 
     _setupMode = 1;
   }
+
+  //configure GPIO for setup interrupt by push button
+  pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, FALLING);
+  Serial1.printf("Interrupt for re-entering setup mode attached to GPIO%d\n\n", SETUP_INTERRUPT_PIN); 
 }
 
 void wifiSerialLoop() {
@@ -177,7 +188,7 @@ void wifiSerialLoop() {
     if (!serverClient || !serverClient.connected()) {
       if (serverClient) serverClient.stop();
       serverClient = server->available();
-      Serial1.print("New client connected."); Serial1.println(); Serial1.println();
+      Serial1.println("New client connected.\n");
     }
     else {
       //reject additional connection requests.
@@ -229,7 +240,7 @@ void wifiSerialLoop() {
     Serial1.println();
     Serial1.print("Serial: ");
     for (uint8_t n = 0; n < len; n++) {
-      Serial1.print(sbuf[n], HEX);
+      Serial1.printf("%02x,", sbuf[n]);
     }
     Serial1.println();
   }
@@ -261,16 +272,21 @@ void handleUpdate() {
   String subnet = _setupServer->arg(FIELD_SUBNET);
 
   Serial1.println("Submitted parameters:");
-  Serial1.println("SSID: " + ssid);
-  if (password.length() > 0)
-    Serial1.println("Password: ***");
+  Serial1.printf("SSID: '%s'\n", ssid.c_str());
+  if (password.length() > 0){
+    Serial1.print("Password: '");
+    for (int i=0; i < password.length(); i++) {
+      Serial1.print('*');
+    }
+    Serial1.println("'");
+  }
   else
     Serial1.println("Password: empty");
-  Serial1.println("Port: " + port);
-  Serial1.println("IP: " + ip);
-  Serial1.println("DNS: " + dns);
-  Serial1.println("Gateway: " + gateway);
-  Serial1.println("Subnet: " + subnet);
+  Serial1.printf("Port: '%s'\n", port.c_str());
+  Serial1.printf("IP: '%s'\n", ip.c_str());
+  Serial1.printf("DNS: '%s'\n", dns.c_str());
+  Serial1.printf("Gateway: '%s'\n", gateway.c_str());
+  Serial1.printf("Subnet: '%s'\n", subnet.c_str());
 
   // check if mandatory parameters have been set
   if (ssid.length() == 0 || port.length() == 0) {
@@ -288,7 +304,7 @@ void handleUpdate() {
   }
 
   //write configuration data to file
-  Serial1.print("Writing config to file '"); Serial1.print(_configFile); Serial1.println("'");
+  Serial1.printf("Writing config to file '%s'", _configFile);
   SPIFFS.begin();
   File configFile = SPIFFS.open(_configFile, "w");
 
@@ -303,7 +319,8 @@ void handleUpdate() {
   configFile.close();
 
   //leave setup mode and restart with existing configuration
-  _setupServer->send(200, "text/plain", "Configuration saved. Rebooting adapter to connect to WiFi-Network '" + ssid + "'. If this does not work the adapter will return to setup mode again.");
+  _setupServer->send(200, "text/plain", "Configuration saved. Rebooting adapter to connect to WiFi-Network '" + ssid + 
+    "'. If this does not work the adapter will return to setup mode again.");
   Serial1.println("Config saved, resetting ESP...");
   delay(10);
   ESP.reset();
