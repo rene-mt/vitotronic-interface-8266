@@ -75,12 +75,13 @@ WiFiClient serverClient;
 
 void setup() {
   Serial1.begin(115200); // User Serial1 (GPIO2) as debug output (TX), with 115200,N,1
-  //Serial1.setDebugOutput(true);
-  Serial1.println("Vitotronic WiFi Interface"); Serial1.println();
-
+  Serial1.setDebugOutput(true);
+  Serial1.println();Serial1.println("Vitotronic WiFi Interface"); Serial1.println();
+  yield();
+  
   //configure GPIO for setup interrupt by push button
-  pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, LOW);
+  //pinMode(SETUP_INTERRUPT_PIN, INPUT_PULLUP);
+  //attachInterrupt(digitalPinToInterrupt(SETUP_INTERRUPT_PIN), setupInterrupt, LOW);
 
   //try to read config file from internal file system
   SPIFFS.begin();
@@ -235,9 +236,17 @@ void handleRoot(){
 }
 
 void handleUpdate(){
-  if (!_setupServer || _setupServer->uri() != "/update")
+  Serial1.println("handleUpdate()");
+  if (!_setupServer){
+    Serial1.println("_setupServer is NULL, exiting.");
     return;
+  }
+  if (_setupServer->uri() != "/update"){
+    Serial1.printf("URI is '%s', which does not match expected URI '/update', exiting.\n", _setupServer->uri().c_str());
+    return;
+  }
 
+  Serial1.printf("Number of submitted headers: %d\n", _setupServer->headers());
   String ssid = _setupServer->header(FIELD_SSID);
   String password = _setupServer->header(FIELD_PASSWORD);
   String port = _setupServer->header(FIELD_PORT);
@@ -246,8 +255,21 @@ void handleUpdate(){
   String gateway = _setupServer->header(FIELD_GATEWAY);
   String subnet = _setupServer->header(FIELD_SUBNET);
 
+  Serial1.println("Submitted parameters:");
+  Serial1.println("SSID: " + ssid);
+  if (password.length() > 0)
+    Serial1.println("Password: ***");
+  else
+    Serial1.println("Password: empty");
+  Serial1.println("Port: " + port);
+  Serial1.println("IP: " + ip);
+  Serial1.println("DNS: " + dns);
+  Serial1.println("Gateway: " + gateway);
+  Serial1.println("Subnet: " + subnet);
+  
   // check if mandatory parameters have been set
   if (ssid.length() == 0 || port.length() == 0){
+    Serial1.println("Missing SSID or Port parameter!");
     handleRoot();
     return;
   }
@@ -255,11 +277,13 @@ void handleUpdate(){
   //for static IP configuration: check if all parameters have been set
   if(ip.length() > 0 || dns.length() > 0 || gateway.length() > 0 || subnet.length() > 0 &&
      (ip.length() == 0|| dns.length() == 0 || gateway.length() == 0 || subnet.length() == 0)){
+    Serial1.println("Missing static IP parameters!");
     handleRoot();
     return;
   }
 
   //write configuration data to file
+  Serial1.print("Writing config to file '"); Serial1.print(_configFile); Serial1.println("'");
   SPIFFS.begin();
   File configFile = SPIFFS.open(_configFile, "w");
 
@@ -272,8 +296,10 @@ void handleUpdate(){
   configFile.println(subnet);
 
   configFile.close();
-  
+
   //leave setup mode and restart with existing configuration
+  Serial1.println("Config saved, resetting ESP...");
+  delay(10);
   ESP.reset();
 }
 
