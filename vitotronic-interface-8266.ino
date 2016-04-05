@@ -3,7 +3,6 @@
 #include <FS.h>
 #include <ESP8266WebServer.h>
 
-
 //GPIO pin triggering setup interrupt for re-configuring the server
 #define SETUP_INTERRUPT_PIN 12
 
@@ -76,6 +75,16 @@ ESP8266WebServer* _setupServer = NULL;
 WiFiServer* server = NULL;
 WiFiClient serverClient;
 
+//helper function to remove trailing CR (0x0d) from strings read from config file
+String removeTrailingCR(String input){
+  if (!input)
+    return String();
+  if (input.charAt(input.length()-1) == 0x0d){
+    input.remove(input.length()-1);
+  }
+  return input;
+}
+
 void setup() {
   Serial1.begin(115200); // User Serial1 (GPIO2) as debug output (TX), with 115200,N,1
   //Serial1.setDebugOutput(true);
@@ -88,10 +97,10 @@ void setup() {
   if (configFile) {
     Serial1.println("Using existing WiFi config to connect");
 
-    String ssid = configFile.readStringUntil('\n');
-    String password = configFile.readStringUntil('\n');
+    String ssid = removeTrailingCR(configFile.readStringUntil('\n'));
+    String password = removeTrailingCR(configFile.readStringUntil('\n'));
 
-    String port = configFile.readStringUntil('\n');
+    String port = removeTrailingCR(configFile.readStringUntil('\n'));
 
     if (!ssid || ssid.length() == 0
         || !port || port.length() == 0)
@@ -99,23 +108,25 @@ void setup() {
       //reset & return to setup mode if minium configuration data is missing
       Serial1.println("Minimum configuration data is missing (ssid, port) - resetting to setup mode.");
       SPIFFS.remove(_configFile);
+
+      yield();
       ESP.reset();
       return;
     }
 
-    String ip = configFile.readStringUntil('\n');
-    ip.trim();
-    String dns = configFile.readStringUntil('\n');
-    dns.trim();
-    String gateway = configFile.readStringUntil('\n');
-    gateway.trim();
-    String subnet = configFile.readStringUntil('\n');
-    subnet.trim();
+    String ip = removeTrailingCR(configFile.readStringUntil('\n'));
+    String dns = removeTrailingCR(configFile.readStringUntil('\n'));
+    String gateway = removeTrailingCR(configFile.readStringUntil('\n'));
+    String subnet = removeTrailingCR(configFile.readStringUntil('\n'));
 
     configFile.close();
 
     // Initialize WiFi
+    WiFi.disconnect();
+    yield();
     WiFi.mode(WIFI_STA);
+    yield();
+    
     if (ip && ip.length() > 0
         && dns && dns.length() > 0
         && gateway && gateway.length() > 0
@@ -125,15 +136,15 @@ void setup() {
       Serial1.println("Static IP configuration available:");
       Serial1.printf("IP: '%s', DNS: '%s', gateway: '%s', subnet mask: '%s'\n", ip.c_str(), dns.c_str(), gateway.c_str(), subnet.c_str());
       WiFi.config(IPAddress().fromString(ip), IPAddress().fromString(dns), IPAddress().fromString(gateway), IPAddress().fromString(subnet));
+      yield();
     }
-
-    //Serial1.printf("\nConnecting to WiFi network '%s' password: '%s'", ssid.c_str(), password.c_str());
+    
     Serial1.printf("\nConnecting to WiFi network '%s' password: '", ssid.c_str());
-    for (int i=0; i< password.length(); i++){
+    for (int i=0; i<password.length(); i++){
       Serial1.print("*");
     }
     Serial1.print("'");
-    
+
     uint8_t wifiAttempts = 0;
     WiFi.begin(ssid.c_str(), password.c_str());
     while (WiFi.status() != WL_CONNECTED && wifiAttempts++ < 20) {
@@ -273,15 +284,11 @@ void handleUpdate() {
 
   Serial1.println("Submitted parameters:");
   Serial1.printf("SSID: '%s'\n", ssid.c_str());
-  if (password.length() > 0){
-    Serial1.print("Password: '");
-    for (int i=0; i < password.length(); i++) {
-      Serial1.print('*');
-    }
-    Serial1.println("'");
+  Serial1.print("Password: '");
+  for (int i=0; i < password.length(); i++) {
+    Serial1.print('*');
   }
-  else
-    Serial1.println("Password: empty");
+  Serial1.println("'");
   Serial1.printf("Port: '%s'\n", port.c_str());
   Serial1.printf("IP: '%s'\n", ip.c_str());
   Serial1.printf("DNS: '%s'\n", dns.c_str());
@@ -331,6 +338,7 @@ void setupInterrupt() {
   Serial1.println("Reset button pressed, deleting existing configuration...");
   SPIFFS.begin();
   SPIFFS.remove(_configFile);
+  yield();
   ESP.reset();
 }
 
