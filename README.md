@@ -1,24 +1,30 @@
 # vitotronic-interface-8266
 
-**Currently I am working on a way to allow dynamic configuration of the ESP server in the [develop](https://github.com/rene-mt/vitotronic-interface-8266/tree/develop) branch.**
+ESP8266 WiFi to serial interface, built to connect to a Viessmann Vitotronic heating control. The heating control is accessed by using an *Optokoppler*, according to the instructions in the [OpenV wiki](http://openv.wikispaces.com/Bauanleitung+RaspberryPi) and made available as TCP/telnet server in the WiFi network. The communication bewteen the ESP8266 and the heating (via the *Optokoppler*) runs at 4800bps, 8 bits, even parity, 2 stop bits.
 
-Simple ESP8266 WiFi to serial interface, built to connect to a Viessmann Vitotronic heating control. The heating control is accessed by using an _Optokoppler_, according to the instructions in the [OpenV wiki](http://openv.wikispaces.com/Bauanleitung+RaspberryPi) and made available as TCP/telnet server in the WiFi network. The communication bewteen the ESP8266 and the heating (via the _Optokoppler_) runs at 4800bps, 8 bits, even parity, 2 stop bits.
-
-The source is based on the [ESP8266 Arduino WiFi Telnet example](https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WiFi/examples/WiFiTelnetToSerial).
-
-## How to set up
+## Flashing the Firmware
 1. Install the Arduino IDE plus the 8266 package following the instructions  at https://github.com/esp8266/Arduino#installing-with-boards-manager
-2. Open the _vitotronic-interface-8266.ino_ sketch and adapt the following information:
-   * Set _MAX_SRV_CLIENTS_ to the number of WiFi clients that should be able to connect simultanously to the server. The default of _1_ should be fine, since multiple parallel requests would screw up the communication with the heating.
-   * Set _SRV_PORT_ to the port you want the server to listen to (default 8888).
-   * Set your WiFi credentials (SSID/password) in _ssid_ and _password_.
-   * If you want to use static IP assignment:
-     * set _ip_, _dns_, _gateway_, and _subnet_ according to your network/router settings
-   * otherwise, if you are using DHCP:
-     * comment/remove the line `WiFi.config(ip, dns, gateway, subnet);`
-3. Compile the sketch and upload it to your ESP8266
+2. Open, compile and upload the *vitotronic-interface-8266.ino* sketch to your ESP8266.
 
-## How to connect
-* Connect the _Optokoppler_ to the heating, connect _IN/RX_ with the ESP8266 _RX_ line and _OUT/TX_ with the ESP8266 _TX_ line, as well as _VCC_ and _GND_ to 3.3V and Ground.
-* Turn power on. The ESP should show up in your WiFi network. Afterwards you should be able to telnet into it at _<it's IP>:<the port you assigned>_.
-* If you want to retrieve debugging output, connnect a serial port's _RX_ line to _GPIO2_ of the ESP8266 at 115200bps, 8N1. Don't forget to connect GND of the port as well to GND of the ESP8266.
+## Setting Up the *Optokoppler* Hardware
+* Wire up the ESP8266 and power supply.
+* Connect the *Optokoppler* to the heating, connect *IN/RX* with the ESP8266 *RX* line and *OUT/TX* with the ESP8266 *TX* line, as well as *VCC* and *GND* to 3.3V and Ground.
+* If you want to retrieve debugging output, connnect a serial port's *RX* line to *GPIO2* of the ESP8266 at 115200bps, 8N1. Don't forget to connect *GND* of the port as well to *GND* of the ESP8266. Works like charm with an FTD USB-to-serial adapter.
+
+## Configuring the Adapter
+As long as the ESP of the adapter is not configured for connecting to a WiFi network it will provide an own WPA2-secured WiFi access point for configuration. To set up the adapter,
+* Scan your WiFi environment for the SSID *"vitotronic-interface"*.
+* Connect to this network, using the password *"vitotronic"*.
+* In your web browser, visit http://192.168.4.1
+* Provide the required configuration information:
+  * **SSID** of the WiFi network to connect to (mandatory)
+  * **Password** for the WiFi network
+  * If you want to assign a static IP to the adapter, specify
+    * **IP** address to be assigned to the adapter
+    * **DNS** server address
+    * **Gateway** address
+    * **Subnet Mask**
+  * The **Port** at which the adapter listens for an incoming connection (mandatory)
+* Press "Submit" afterwards. The adapter will save the configuration, restart and connect to the given WiFi network. Afterwards the server will be reachable in the network at the IP (DHCP or static) and specified port. The server's IP is also pingable.
+
+To re-configure the adapter, connect *GPIO12* to *GND* for a short time (e.g. by a pushbutton). Thus, the existing configuration will be deleted and the adapter will enter setup mode again (see above).
