@@ -34,41 +34,70 @@ const char* _configFile = "/config/config.txt";
 #define FIELD_GATEWAY "gateway"
 #define FIELD_SUBNET "subnet"
 
-const char* _htmlTemplate =
+const char* _htmlConfigTemplate =
   "<html>" \
-  "<head>" \
-  "<title>Vitotronic WiFi Interface</title>" \
-  "</head>" \
-  "<body>" \
-  "<h1>Vitotronic WiFi Interface</h1>" \
-  "<form action=\"update\" id=\"update\" method=\"post\">" \
-  "<p>Fields marked by (*) are mandatory.</p>" \
-  "<h2>WiFi Network Configuration Data</h2>" \
-  "<p>" \
-  "<div>The following information is required to set up the WiFi connection of the server.</div>" \
-  "<label for=\"" FIELD_SSID "\">SSID (*):</label><input type=\"text\" name=\"" FIELD_SSID "\" required  />" \
-  "<label for=\"" FIELD_PASSWORD "\">Password:</label><input type=\"password\" name=\"" FIELD_PASSWORD "\" />" \
-  "</p>" \
-  "<h2>Static IP settings</h2>" \
-  "<p>" \
-  "<div>If you want to assing a static IP address fill out the following information. All addresses have to by given in IPv4 format (XXX.XXX.XXX.XXX)." \
-  "Leave the fields empty to rely on DHCP to obtain an IP address.</div>" \
-  "<label for=\"" FIELD_IP "\">Static IP:</label><input type=\"text\" name=\"" FIELD_IP "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
-  "<label for=\"" FIELD_DNS "\">DNS Server:</label><input type=\"text\" name=\"" FIELD_DNS "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
-  "<label for=\"" FIELD_GATEWAY "\">Gateway:</label><input type=\"text\" name=\"" FIELD_GATEWAY "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
-  "<label for=\"" FIELD_SUBNET "\">Subnet mask:</label><input type=\"text\" name=\"" FIELD_SUBNET "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
-  "</p>" \
-  "<h2>Server Port</h2>" \
-  "<p>" \
-  "<div>The Vitotronic WiFi Interface will listen at the following port for incoming telnet connections:</div>" \
-  "<label for=\"" FIELD_PORT "\">Port (*):</label><input type=\"number\" name=\"" FIELD_PORT "\" value=\"8888\" required />" \
-  "</p>" \
-  "<div>" \
-  "<button type=\"reset\">Reset</button>&nbsp;" \
-  "<button type=\"submit\">Submit</button>" \
-  "</div>" \
-  "</form>" \
-  "</body>" \
+    "<head>" \
+      "<title>Vitotronic WiFi Interface</title>" \
+    "</head>" \
+    "<body>" \
+      "<h1>Vitotronic WiFi Interface</h1>" \
+      "<h2>Setup</h2>" \
+      "<form action=\"update\" id=\"update\" method=\"post\">" \
+        "<p>Fields marked by (*) are mandatory.</p>" \
+        "<h3>WiFi Network Configuration Data</h3>" \
+        "<p>" \
+          "<div>The following information is required to set up the WiFi connection of the server.</div>" \
+          "<label for=\"" FIELD_SSID "\">SSID (*):</label><input type=\"text\" name=\"" FIELD_SSID "\" required  />" \
+          "<label for=\"" FIELD_PASSWORD "\">Password:</label><input type=\"password\" name=\"" FIELD_PASSWORD "\" />" \
+        "</p>" \
+        "<h3>Static IP settings</h3>" \
+        "<p>" \
+          "<div>If you want to assing a static IP address fill out the following information. All addresses have to by given in IPv4 format (XXX.XXX.XXX.XXX)." \
+          "Leave the fields empty to rely on DHCP to obtain an IP address.</div>" \
+          "<label for=\"" FIELD_IP "\">Static IP:</label><input type=\"text\" name=\"" FIELD_IP "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
+          "<label for=\"" FIELD_DNS "\">DNS Server:</label><input type=\"text\" name=\"" FIELD_DNS "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
+          "<label for=\"" FIELD_GATEWAY "\">Gateway:</label><input type=\"text\" name=\"" FIELD_GATEWAY "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
+          "<label for=\"" FIELD_SUBNET "\">Subnet mask:</label><input type=\"text\" name=\"" FIELD_SUBNET "\" pattern=\"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$\" /><br/>" \
+        "</p>" \
+        "<h3>Server Port</h3>" \
+        "<p>" \
+          "<div>The Vitotronic WiFi Interface will listen at the following port for incoming telnet connections:</div>" \
+          "<label for=\"" FIELD_PORT "\">Port (*):</label><input type=\"number\" name=\"" FIELD_PORT "\" value=\"8888\" required />" \
+        "</p>" \
+        "<div>" \
+          "<button type=\"reset\">Reset</button>&nbsp;" \
+          "<button type=\"submit\">Submit</button>" \
+        "</div>" \
+      "</form>" \
+    "</body>" \
+  "</html>";
+
+const char* _htmlSuccessTemplate =
+  "<html>" \
+    "<head>" \
+      "<title>Vitotronic WiFi Interface</title>" \
+    "</head>" \
+    "<body>" \
+      "<h1>Vitotronic WiFi Interface</h1>" \
+      "<h2>Configuration Saved</h2>" \
+      "<p>" \
+        "The configuration has been successfully saved to the adapter:<br/><br/>" \
+        "- SSID: %%ssid<br/>" \
+        "- Password: %%password<br/>" \
+        "- Port: %%port<br/><br/>" \
+        "- Static IP: %%ip<br/>" \
+        "- DNS server: %%dns<br/>" \
+        "- Gateway: %%gateway<br/>" \
+        "- Subnet mask: %%subnet<br/>" \
+        "The adapter will reboot now and connect to the specified WiFi network. In case of a successful connection the <em>vitotronic-interface</em> network will be gone. " \
+        "<strong>If no connection is possible, e.g. because the password is wrong or the network is not available, the adapter will return to setup mode again.</strong>" \
+      "</p>" \
+      "<p>" \
+        "<strong><em>IMPORTANT NOTICE:</em></strong><br/>" \
+        "Some of the ESP8266 mikrocontrollers, built into the adapter, need a hard reset to be able to connect to the new WiFi network. " \
+        "Therefore it is recommended to interrupt the power supply for a short time within the next 10 seconds.</strong>" \
+      "</p>" \
+    "</body>" \
   "</html>";
 
 ESP8266WebServer* _setupServer = NULL;
@@ -259,7 +288,7 @@ void wifiSerialLoop() {
 
 void handleRoot() {
   if (_setupServer) {
-    _setupServer->send(200, "text/html", _htmlTemplate);
+    _setupServer->send(200, "text/html", _htmlConfigTemplate);
   }
 }
 
@@ -324,10 +353,25 @@ void handleUpdate() {
   configFile.println(subnet);
 
   configFile.close();
+  yield();
+  
+  String maskedPassword = "";
+  for (int i=0; i<password.length(); i++){
+    maskedPassword+="*";
+  }
 
+  String htmlSuccess(_htmlSuccessTemplate);
+  htmlSuccess.replace("%%ssid", ssid);
+  htmlSuccess.replace("%%password", maskedPassword);
+  htmlSuccess.replace("%%port", port);
+  htmlSuccess.replace("%%ip", ip);
+  htmlSuccess.replace("%%dns", dns);
+  htmlSuccess.replace("%%gateway", gateway);
+  htmlSuccess.replace("%%subnet", subnet),
+  
   //leave setup mode and restart with existing configuration
-  _setupServer->send(200, "text/plain", "Configuration saved. Rebooting adapter to connect to WiFi-Network '" + ssid + 
-    "'. If this does not work the adapter will return to setup mode again.");
+  _setupServer->send(200, "text/html", htmlSuccess);
+  
   Serial1.println("Config saved, resetting ESP...");
   delay(10);
   ESP.reset();
