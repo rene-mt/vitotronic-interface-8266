@@ -25,6 +25,6 @@ As long as the ESP of the adapter is not configured for connecting to a WiFi net
     * **Gateway** address
     * **Subnet Mask**
   * The **Port** at which the adapter listens for an incoming connection (mandatory)
-* Press "Submit" afterwards. The adapter will save the configuration, restart and connect to the given WiFi network. Afterwards the server will be reachable in the network at the IP (DHCP or static) and specified port. The server's IP is also pingable.
+* Press "Submit" afterwards. The adapter will save the configuration, restart and connect to the given WiFi network. Afterwards the server will be reachable in the network at the IP (DHCP or static) and specified port. The server's IP is also pingable. **Important notice:** Some ESP8266 modules need a "hard reset" to be able to connect to the new WiFi network. Therefore it is recommended to interrupt the power supply for a short time after the new configuration has been submitted. If the connection was successlful, the *vitotronic-interface* network will be gone and the adapter should be pingable in the specified network.
 
 To re-configure the adapter, connect *GPIO12* to *GND* for a short time (e.g. by a pushbutton). Thus, the existing configuration will be deleted and the adapter will enter setup mode again (see above).
